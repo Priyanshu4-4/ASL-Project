@@ -31,7 +31,7 @@ def main():
         print(f"No model found at {MODEL_PATH}. Run train.py first.")
         return
 
-    landmarker = create_landmarker()
+    landmarker = create_landmarker(num_hands=2)
     cap = cv2.VideoCapture(0)
     start_time = time.time()
 
@@ -47,13 +47,14 @@ def main():
 
         prediction_text = "No hand detected"
         if result.hand_landmarks:
-            hand_landmarks = result.hand_landmarks[0]
-            draw_landmarks(frame, hand_landmarks)
-
-            features = landmarks_to_features(hand_landmarks)
-            pred = clf.predict(features)[0]
-            proba = clf.predict_proba(features).max()
-            prediction_text = f"{pred.upper()} ({proba:.0%})"
+            texts = []
+            for hand_landmarks in result.hand_landmarks:
+                draw_landmarks(frame, hand_landmarks)
+                features = landmarks_to_features(hand_landmarks)
+                pred = clf.predict(features)[0]
+                proba = clf.predict_proba(features).max()
+                texts.append(f"{pred.upper()} ({proba:.0%})")
+            prediction_text = "   |   ".join(texts)
 
         cv2.putText(
             frame, prediction_text, (10, 40),

@@ -24,7 +24,7 @@ HAND_CONNECTIONS = [
 ]
 
 
-def create_landmarker(running_mode=None):
+def create_landmarker(running_mode=None, num_hands=1):
     """Create a HandLandmarker.
 
     running_mode defaults to VIDEO (for webcam scripts, one call per frame
@@ -40,7 +40,7 @@ def create_landmarker(running_mode=None):
     options = vision.HandLandmarkerOptions(
         base_options=BaseOptions(model_asset_path=MODEL_PATH),
         running_mode=running_mode,
-        num_hands=1,
+        num_hands=num_hands,
         min_hand_detection_confidence=0.7,
         min_tracking_confidence=0.5,
     )

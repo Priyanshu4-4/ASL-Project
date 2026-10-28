@@ -23,9 +23,7 @@ asl-fingerspelling/
 ├── predict.py             # real-time recognition from webcam (gesture -> text)
 ├── record_word.py         # record whole-word sign clips via webcam
 ├── extract_word_from_dataset.py  # pull whole-word signs from the WLASL dataset
-├── gloss.py                # spaCy-based English -> ASL gloss (grammar) converter
-├── test_gloss.py            # regression test sentences for gloss.py — run after changes
-├── vocab_coverage.py         # tracks recorded vs. target vocabulary by category
+├── gloss.py                # rule-based English -> ASL gloss (grammar) converter
 ├── text_to_gesture.py     # gloss + word playback + fingerspelling fallback (text -> gesture)
 ├── models/
 │   └── hand_landmarker.task   # downloaded by download_model.py
@@ -47,12 +45,6 @@ python download_model.py        # downloads the hand-tracking model (~10MB, one 
 what these scripts use (`mediapipe.tasks.python.vision.HandLandmarker`). It
 needs the separate model file that `download_model.py` fetches — that's why
 this step exists.
-
-**gloss.py also needs a spaCy language model**, downloaded separately from
-the `pip install`:
-```bash
-python -m spacy download en_core_web_sm
-```
 
 ## Workflow
 
@@ -160,42 +152,19 @@ fingerspelling.
 python text_to_gesture.py "Did you eat yesterday?"
 ```
 This does two things:
-1. **Grammar conversion** (`gloss.py`): uses spaCy's dependency parser to
-   analyze each sentence's grammatical structure (part of speech, subject/
-   verb/object roles) and rewrite it into simplified ASL gloss order —
-   drops articles and "to be" verbs, fronts time words (yesterday, tomorrow,
-   now...), moves question words to the end, detaches negation and places
-   it after the verb, and topicalizes simple subject-verb-object sentences
-   (object moved to the front — e.g. "I like pizza" → `PIZZA I LIKE`).
-   Because it's POS-based rather than keyword-matched, it generalizes to
-   words it's never explicitly seen. Still a rule-based approximation, not
-   a linguistically complete ASL grammar engine — real ASL grammar
-   (classifiers, facial grammar, spatial referencing) goes well beyond
-   word reordering; see the limitations note at the bottom of `gloss.py`.
+1. **Grammar conversion** (`gloss.py`): rewrites the English sentence into a
+   simplified ASL gloss order — drops articles and "to be" verbs, moves time
+   words (yesterday, tomorrow, now...) to the front, moves question words
+   to the end. E.g. "Did you eat yesterday?" → `YESTERDAY YOU EAT` roughly.
+   This is a rule-based approximation, not a linguistically complete ASL
+   grammar engine — real ASL grammar (classifiers, facial grammar, spatial
+   referencing) goes well beyond word reordering.
 2. **Playback**: for each gloss word, plays your recorded whole-word sign if
    one exists (`data/words/<word>.npy`), otherwise fingerspells it letter by
    letter using the per-letter templates from `data/landmarks.csv`.
 
 Use `--no-gloss` to skip the grammar step and sign/spell the input literally,
 word for word.
-
-### Testing gloss.py as you extend it
-```bash
-python test_gloss.py
-```
-Runs a fixed set of varied example sentences (statements, questions,
-negation, time-fronting, compound sentences) through `to_gloss()` so you can
-eyeball the output after any change — useful for catching when a new rule
-breaks an existing case.
-
-### Tracking vocabulary coverage
-```bash
-python vocab_coverage.py
-```
-Checks `data/words/` against a target word list organized by category
-(pronouns, question words, common verbs, time words, social phrases,
-feelings) and reports what's recorded vs. still missing. Edit
-`TARGET_VOCAB` in the script to adjust your plan.
 
 ## Next steps once this works
 - Add J and Z (motion-based — needs a short sequence of frames, not one).
@@ -205,8 +174,8 @@ feelings) and reports what's recorded vs. still missing. Edit
 - Swap the Random Forest for a small neural net once you have more data.
 - Replace the skeleton animation with a proper 3D avatar for a more natural
   look.
-- Extend `gloss.py`'s topicalization beyond simple single-clause SVO
-  sentences, and add handling for compound/multi-clause sentences.
+- Improve `gloss.py` with a real NLP library (e.g. spaCy) for POS-aware
+  reordering instead of the current keyword-based rules.
 
 ## Notes
 - Works with a normal laptop webcam — no GPU required for this phase.

@@ -46,7 +46,7 @@ def landmarks_to_row(hand_landmarks, label):
 
 def main():
     ensure_csv()
-    landmarker = create_landmarker()
+    landmarker = create_landmarker(num_hands=2)
 
     cap = cv2.VideoCapture(0)
     current_label = None
@@ -76,8 +76,9 @@ def main():
 
         latest_landmarks = None
         if result.hand_landmarks:
-            latest_landmarks = result.hand_landmarks[0]
-            draw_landmarks(frame, latest_landmarks)
+            latest_landmarks = result.hand_landmarks
+            for hand in latest_landmarks:
+                draw_landmarks(frame, hand)
 
         label_text = f"Label: {current_label or '-'}"
         count_text = f"Count: {counts.get(current_label, 0) if current_label else 0}"
@@ -91,10 +92,11 @@ def main():
         elif key in [ord(c) for c in VALID_LABELS]:
             current_label = chr(key)
         elif key == ord(" ") and current_label and latest_landmarks:
-            row = landmarks_to_row(latest_landmarks, current_label)
             with open(CSV_PATH, "a", newline="") as f:
-                csv.writer(f).writerow(row)
-            counts[current_label] += 1
+                writer = csv.writer(f)
+                for hand in latest_landmarks:
+                    writer.writerow(landmarks_to_row(hand, current_label))
+                    counts[current_label] += 1
             print(f"Captured '{current_label}' (total: {counts[current_label]})")
 
     cap.release()
